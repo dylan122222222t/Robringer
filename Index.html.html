@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROBLOX Clone (2017 Style)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js for 3D Avatar Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* Base 2017 Roblox Style */
+        body {
+            margin: 0;
+            font-family: 'Verdana', sans-serif;
+            background-color: #f7f7f7; /* Light gray body background */
+            color: #1e1e1e;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #007bff; /* Primary blue for header */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        /* Navigation Links */
+        .nav-link {
+            padding: 1rem 0;
+            margin: 0 1rem;
+            color: white;
+            font-weight: 700;
+            transition: border-bottom 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            border-bottom-color: #4CAF50; /* Green highlight on hover */
+        }
+
+        .nav-link.active-tab {
+            border-bottom-color: white;
+        }
+
+        /* Tab Content container */
+        .tab-content-container {
+            padding: 2rem;
+            min-height: calc(100vh - 64px); /* Full height minus header */
+        }
+
+        /* Individual Tab Styling */
+        .tab {
+            display: none;
+            /* Ensure tabs take up full available width */
+            width: 100%; 
+        }
+        .tab.active {
+            display: block;
+        }
+
+        /* Buttons & Forms */
+        .roblox-button {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50; /* Classic green button */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        .input-style {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* 3D Avatar Editor Specific Styles */
+        #avatarCanvasContainer {
+            background-color: #e6e6e6; /* Light gray canvas background */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            height: 400px; /* Fixed height for consistent 3D rendering */
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #avatarCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="h-16 flex justify-between items-center px-4">
+        <h1 class="text-white text-2xl font-extrabold tracking-tight">ROBLOX</h1>
+        <nav class="flex h-full">
+            <a href="#" class="nav-link tab-button" data-tab="home">Home</a>
+            <a href="#" class="nav-link tab-button" data-tab="games">Games</a>
+            <a href="#" class="nav-link tab-button" data-tab="catalog">Catalog</a>
+            <a href="#" class="nav-link tab-button" data-tab="profile">Profile</a>
+            <a href="#" class="nav-link tab-button active-tab" data-tab="avatar">Avatar</a>
+            <a href="#" class="nav-link tab-button" data-tab="friends">Friends</a>
+            <a href="#" class="nav-link tab-button" data-tab="chat">Chat</a>
+        </nav>
+        <div class="flex items-center space-x-4 text-white font-semibold">
+            <div id="robuxDisplay" class="flex items-center space-x-1 cursor-pointer hover:underline">
+                <span class="text-yellow-300">R$</span>
+                <span id="robuxBalance">0</span>
+            </div>
+            <div id="authContainer" class="flex space-x-2">
+                <!-- User/Login state is managed by JS -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Tabs -->
+    <main class="tab-content-container">
+
+        <!-- Avatar Editor Tab (Active by Default) -->
+        <section id="avatar" class="tab active">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800 border-b pb-2">3D Avatar Editor</h2>
+            <div class="flex flex-col lg:flex-row gap-8">
+                
+                <!-- 3D Viewer Area -->
+                <div class="lg:w-1/2">
+                    <div id="avatarCanvasContainer">
+                        <canvas id="avatarCanvas"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Click and drag to rotate the avatar!</p>
+                </div>
+
+                <!-- Customization Controls -->
+                <div class="lg:w-1/2 space-y-6">
+                    <h3 class="text-xl font-semibold border-b pb-2">Body Customization</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- Color Picker Blocks -->
+                        <div class="space-y-1">
+                            <label for="headColor" class="block text-sm font-medium">Head Color</label>
+                            <input type="color" id="headColor" value="#ffdd99" class="w-full h-10 p-1 border-gray-300 rounded-lg" onchange="updateAvatarColor('Head', this.value)">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="torsoColor" class="block text-sm font-medium">Torso Color</label>
+                            <input type="color" id="torsoColor" value="#00a2ff" class="w-full h-10 p-1 border-gray-300 rounded-lg" onchange="updateAvatarColor('Torso', this.value)">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="armColor" class="block text-sm font-medium">Arm Color</label>
+                            <!-- Note: Arms are linked -->
+                            <input type="color" id="armColor" value="#ffdd99" class="w-full h-10 p-1 border-gray-300 rounded-lg" onchange="updateAvatarColor('LeftArm', this.value); updateAvatarColor('RightArm', this.value);">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="legColor" class="block text-sm font-medium">Leg Color</label>
+                            <!-- Note: Legs are linked -->
+                            <input type="color" id="legColor" value="#666666" class="w-full h-10 p-1 border-gray-300 rounded-lg" onchange="updateAvatarColor('LeftLeg', this.value); updateAvatarColor('RightLeg', this.value);">
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-semibold border-b pb-2 mt-8">Hats & Accessories</h3>
+                    <div id="accessoryControls" class="space-y-3">
+                        <!-- Dynamic accessory controls rendered here based on inventory -->
+                        <p class="text-gray-500">Loading accessories...</p>
+                    </div>
+
+                    <button class="roblox-button btn-primary w-full mt-6" onclick="saveAvatarState()">Save Avatar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Home Tab -->
+        <section id="home" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Welcome to ROBLOX!</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-lg">This is your homepage, featuring the latest news and popular games from 2017.</p>
+                <div class="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+                    <p class="font-bold">Latest Update:</p>
+                    <p>The new 3D Avatar Editor is now live! Go customize your blocky character.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Games Tab -->
+        <section id="games" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Featured Games</h2>
+            <div id="gamesList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Game items will be rendered here -->
+            </div>
+        </section>
+
+        <!-- Catalog Tab -->
+        <section id="catalog" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Catalog</h2>
+            <div id="catalogList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                <!-- Catalog items will be rendered here -->
+            </div>
+        </section>
+
+        <!-- Profile Tab -->
+        <section id="profile" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">My Profile</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-1/3 space-y-4">
+                    <div id="profileAvatarPreview" class="w-full aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-semibold">
+                        <!-- Placeholder for 3D preview/image -->
+                        <p>Loading Avatar...</p>
+                    </div>
+                    <div class="border-t pt-4">
+                        <h3 class="text-xl font-semibold mb-2" id="profileUsername">Guest</h3>
+                        <p>Join Date: <span id="profileJoinDate">N/A</span></p>
+                    </div>
+                </div>
+                <div class="w-full md:w-2/3">
+                    <h3 class="text-xl font-semibold mb-2 border-b pb-1">Inventory (Accessories)</h3>
+                    <div id="profileInventory" class="grid grid-cols-3 gap-4">
+                        <!-- Inventory items will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Friends Tab -->
+        <section id="friends" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Friends</h2>
+            <div id="friendsList" class="bg-white p-6 rounded-lg shadow-md space-y-3">
+                <!-- Friends list will be rendered here -->
+            </div>
+        </section>
+
+        <!-- Chat Tab -->
+        <section id="chat" class="tab">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Chat Room</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div id="chatMessages" class="h-80 overflow-y-auto border border-gray-300 p-3 mb-4 rounded-lg bg-gray-50">
+                    <!-- Chat messages will be rendered here -->
+                </div>
+                <div class="flex space-x-2">
+                    <input type="text" id="chatMessageInput" placeholder="Say something..." class="flex-grow input-style">
+                    <button id="sendChatButton" class="roblox-button btn-primary">Send</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Generic Modal for Messages and Prompts (replaces alert/confirm) -->
+    <div id="robloxModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-2xl w-96">
+            <h3 id="modalTitle" class="text-xl font-bold mb-3">Message</h3>
+            <p id="modalBody" class="mb-4"></p>
+            <div id="modalButtons" class="flex justify-end space-x-2">
+                <button id="modalConfirmButton" class="roblox-button btn-primary hidden">OK</button>
+                <button id="modalCloseButton" class="roblox-button bg-gray-300 text-gray-800 hover:bg-gray-400">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Global State & Constants ---
+        const LOCAL_STORAGE_KEY = 'robloxCloneState_2017';
+        let currentUser = null;
+        let robuxBalance = 0;
+        let inventory = {}; // Stores item IDs as keys
+        let friendsList = [];
+        let chatMessages = [];
+        let avatarState = {};
+
+        // Three.js Globals
+        let scene, camera, renderer, avatarGroup;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        const AVATAR_SCALE = 0.05; // Scale down for better viewing
+
+        // Global Accessory Definition
+        const ACCESSORIES = {
+            'TopHat': { 
+                name: 'Classic Top Hat', 
+                price: 150, 
+                type: 'Hat', 
+                createMesh: createTopHatMesh,
+                icon: '🎩' // Emoji placeholder for visual flair
+            },
+            'Shades': { 
+                name: 'Cool Shades', 
+                price: 250, 
+                type: 'Face', 
+                createMesh: createShadesMesh,
+                icon: '🕶️'
+            }
+        };
+
+        // --- Utility Functions ---
+
+        /**
+         * Shows a custom modal message instead of using alert() or confirm().
+         */
+        function showMessage(title, body, showConfirm = false, onConfirm = () => {}) {
+            const modal = document.getElementById('robloxModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').textContent = body;
+            
+            const confirmButton = document.getElementById('modalConfirmButton');
+            const closeButton = document.getElementById('modalCloseButton');
+            
+            if (showConfirm) {
+                confirmButton.textContent = 'Confirm';
+                confirmButton.classList.remove('hidden');
+                confirmButton.onclick = () => {
+                    modal.classList.add('hidden');
+                    onConfirm();
+                };
+                closeButton.textContent = 'Cancel';
+            } else {
+                confirmButton.classList.add('hidden');
+                closeButton.textContent = 'Close';
+            }
+
+            closeButton.onclick = () => {
+                modal.classList.add('hidden');
+            };
+
+            modal.classList.remove('hidden');
+        }
+
+        // --- Data Persistence and Initialization ---
+
+        function loadState() {
+            const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedState) {
+                const state = JSON.parse(storedState);
+                currentUser = state.currentUser;
+                robuxBalance = state.robuxBalance || 0;
+                inventory = state.inventory || {};
+                friendsList = state.friendsList || [];
+                chatMessages = state.chatMessages || [];
+                avatarState = state.avatarState || getDefaultAvatarState();
+            } else {
+                // Set defaults if no state exists
+                currentUser = null; 
+                robuxBalance = 1000; 
+                // Give initial accessory for demonstration
+                inventory = { 'TopHat': { name: 'Classic Top Hat', type: 'Hat' } }; 
+                friendsList = ['Builderman', 'Administrator'];
+                chatMessages = [{ username: 'System', text: 'Welcome to the 2017 Clone Chat!', timestamp: new Date().toISOString() }];
+                avatarState = getDefaultAvatarState();
+                saveState(); // Save the initial state
+            }
+        }
+
+        function saveState() {
+            const state = {
+                currentUser,
+                robuxBalance,
+                inventory,
+                friendsList,
+                chatMessages,
+                avatarState
+            };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function getDefaultAvatarState() {
+            return {
+                Head: '#ffdd99',
+                Torso: '#00a2ff',
+                LeftArm: '#ffdd99',
+                RightArm: '#ffdd99',
+                LeftLeg: '#666666',
+                RightLeg: '#666666',
+                accessories: {
+                    TopHat: false,
+                    Shades: false
+                }
+            };
+        }
+
+        // --- Authentication (Simple Login/Logout Simulation) ---
+
+        function updateAuthUI() {
+            const authContainer = document.getElementById('authContainer');
+            authContainer.innerHTML = ''; 
+            
+            if (currentUser) {
+                authContainer.classList.remove('space-x-2');
+                authContainer.classList.add('space-x-4');
+                const userPill = document.createElement('span');
+                userPill.className = 'px-3 py-1 bg-white text-blue-800 rounded-full text-sm';
+                userPill.textContent = `Hello, ${currentUser.username}`;
+                
+                const logoutBtn = document.createElement('button');
+                logoutBtn.className = 'roblox-button bg-red-500 hover:bg-red-600 text-white text-sm';
+                logoutBtn.textContent = 'Log Out';
+                logoutBtn.onclick = logout;
+
+                authContainer.appendChild(userPill);
+                authContainer.appendChild(logoutBtn);
+            } else {
+                authContainer.classList.add('space-x-2');
+                authContainer.classList.remove('space-x-4');
+                const loginBtn = document.createElement('button');
+                loginBtn.className = 'roblox-button bg-green-500 hover:bg-green-600 text-white text-sm';
+                loginBtn.textContent = 'Log In';
+                loginBtn.onclick = login;
+                authContainer.appendChild(loginBtn);
+            }
+        }
+
+        function login() {
+            const username = prompt("Enter a username to log in:");
+            if (username && username.trim()) {
+                currentUser = {
+                    id: Math.random().toString(36).substring(2, 9),
+                    username: username.trim(),
+                    joinDate: new Date().toLocaleDateString()
+                };
+                saveState();
+                updateAuthUI();
+                renderCatalog(); 
+                showMessage('Welcome Back!', `You are now logged in as ${currentUser.username}.`, false);
+            }
+        }
+
+        function logout() {
+            showMessage('Confirm Logout', 'Are you sure you want to log out?', true, () => {
+                currentUser = null;
+                saveState();
+                updateAuthUI();
+                renderCatalog(); 
+            });
+        }
+
+        // --- Three.js 3D Avatar Editor Logic ---
+
+        function initThreeDAvatarEditor() {
+            const canvas = document.getElementById('avatarCanvas');
+            const container = document.getElementById('avatarCanvasContainer');
+            
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe6e6e6); // Light gray background
+            
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            
+            const avatarHeight = (40 + 60 + 60) * AVATAR_SCALE; // Total height estimate
+            const cameraY = avatarHeight / 2; 
+            const cameraZ = 15;
+            
+            camera.position.set(0, cameraY, cameraZ);
+            camera.lookAt(0, cameraY, 0);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+
+            // 4. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 200, 100);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // 5. Avatar Group
+            avatarGroup = new THREE.Group();
+            scene.add(avatarGroup);
+
+            // 6. Create the Avatar
+            createRobloxian();
+            updateAvatarFromState();
+
+            // 7. Event Listeners for Rotation
+            canvas.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mouseup', onMouseUp);
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mouseleave', onMouseUp);
+            
+            // 8. Handle Resizing
+            window.addEventListener('resize', onWindowResize, false);
+            onWindowResize();
+            
+            // 9. Start Animation Loop
+            animate();
+        }
+
+        function onWindowResize() {
+            if (!renderer) return;
+            const container = document.getElementById('avatarCanvasContainer');
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight; 
+            
+            if (camera && renderer) {
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        }
+
+
+        function createRobloxian() {
+            avatarGroup.clear(); // Clear old model
+            
+            // Dimensions (standard Roblox proportions)
+            const sizes = {
+                Head: { x: 40, y: 40, z: 40 },
+                Torso: { x: 40, y: 60, z: 20 },
+                Arm: { x: 20, y: 60, z: 20 },
+                Leg: { x: 20, y: 60, z: 20 }
+            };
+
+            const geometries = {
+                Head: new THREE.BoxGeometry(sizes.Head.x * AVATAR_SCALE, sizes.Head.y * AVATAR_SCALE, sizes.Head.z * AVATAR_SCALE),
+                Torso: new THREE.BoxGeometry(sizes.Torso.x * AVATAR_SCALE, sizes.Torso.y * AVATAR_SCALE, sizes.Torso.z * AVATAR_SCALE),
+                Arm: new THREE.BoxGeometry(sizes.Arm.x * AVATAR_SCALE, sizes.Arm.y * AVATAR_SCALE, sizes.Arm.z * AVATAR_SCALE),
+                Leg: new THREE.BoxGeometry(sizes.Leg.x * AVATAR_SCALE, sizes.Leg.y * AVATAR_SCALE, sizes.Leg.z * AVATAR_SCALE)
+            };
+            
+            // Positions (Y-axis offset to lift the whole model above the ground plane)
+            const groundOffset = 60 * AVATAR_SCALE; // Half the height of the legs
+            
+            const parts = [
+                { name: 'Head', geom: geometries.Head, pos: [0, groundOffset + 60 * AVATAR_SCALE, 0] },
+                { name: 'Torso', geom: geometries.Torso, pos: [0, groundOffset + 30 * AVATAR_SCALE, 0] },
+                { name: 'LeftArm', geom: geometries.Arm, pos: [-30 * AVATAR_SCALE, groundOffset + 30 * AVATAR_SCALE, 0] },
+                { name: 'RightArm', geom: geometries.Arm, pos: [30 * AVATAR_SCALE, groundOffset + 30 * AVATAR_SCALE, 0] },
+                { name: 'LeftLeg', geom: geometries.Leg, pos: [-10 * AVATAR_SCALE, groundOffset - 30 * AVATAR_SCALE, 0] },
+                { name: 'RightLeg', geom: geometries.Leg, pos: [10 * AVATAR_SCALE, groundOffset - 30 * AVATAR_SCALE, 0] }
+            ];
+
+            parts.forEach(part => {
+                const material = new THREE.MeshStandardMaterial({ color: 0xffffff }); // Default white material
+                const mesh = new THREE.Mesh(part.geom, material);
+                mesh.position.set(part.pos[0], part.pos[1], part.pos[2]);
+                mesh.name = part.name;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                avatarGroup.add(mesh);
+            });
+
+            // Add all possible accessory meshes (initially hidden)
+            createAccessoryMeshes();
+        }
+
+        /**
+         * Creates the mesh for the Classic Top Hat accessory.
+         * @returns {THREE.Group} The group containing the hat mesh.
+         */
+        function createTopHatMesh() {
+            const hatMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const brim = new THREE.CylinderGeometry(25 * AVATAR_SCALE, 25 * AVATAR_SCALE, 2 * AVATAR_SCALE, 32);
+            const crown = new THREE.CylinderGeometry(15 * AVATAR_SCALE, 15 * AVATAR_SCALE, 25 * AVATAR_SCALE, 32);
+            
+            // Hat Y position: Base of head (groundOffset + 40) + half head height (20)
+            const hatY = (60 * AVATAR_SCALE) + (60 * AVATAR_SCALE) + (20 * AVATAR_SCALE); 
+
+            const hatGroup = new THREE.Group();
+            
+            const brimMesh = new THREE.Mesh(brim, hatMaterial);
+            brimMesh.position.y = hatY;
+            brimMesh.castShadow = true;
+            hatGroup.add(brimMesh);
+
+            const crownMesh = new THREE.Mesh(crown, hatMaterial);
+            crownMesh.position.y = hatY + (12.5 * AVATAR_SCALE);
+            crownMesh.castShadow = true;
+            hatGroup.add(crownMesh);
+
+            return hatGroup;
+        }
+
+        /**
+         * Creates the mesh for the Cool Shades accessory (simple boxes).
+         * @returns {THREE.Group} The group containing the shades mesh.
+         */
+        function createShadesMesh() {
+            const shadesMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const groundOffset = 60 * AVATAR_SCALE; // Half the height of the legs
+            const headYCenter = groundOffset + 60 * AVATAR_SCALE;
+            
+            const frameWidth = 45 * AVATAR_SCALE;
+            const frameHeight = 10 * AVATAR_SCALE;
+            const frameDepth = 5 * AVATAR_SCALE;
+
+            const frameGeom = new THREE.BoxGeometry(frameWidth, frameHeight, frameDepth);
+            const frameMesh = new THREE.Mesh(frameGeom, shadesMaterial);
+            
+            // Positioned in front of the head
+            frameMesh.position.set(0, headYCenter, 20 * AVATAR_SCALE);
+            frameMesh.castShadow = true;
+
+            const shadesGroup = new THREE.Group();
+            shadesGroup.add(frameMesh);
+            return shadesGroup;
+        }
+
+        /**
+         * Creates all potential accessory meshes and adds them to the avatar group, initially hidden.
+         */
+        function createAccessoryMeshes() {
+            for (const id in ACCESSORIES) {
+                const accessory = ACCESSORIES[id];
+                // Only create the mesh if a creator function exists
+                if (accessory.createMesh) {
+                    const meshGroup = accessory.createMesh();
+                    meshGroup.name = id;
+                    meshGroup.visible = false; // Initially hidden
+                    avatarGroup.add(meshGroup);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (renderer && scene && camera) {
+                if (!isDragging) {
+                    // Gentle rotation when not being dragged
+                    avatarGroup.rotation.y += 0.005;
+                }
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Mouse interaction for rotation
+        function onMouseDown(e) {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+        }
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - previousMousePosition.x;
+            // Rotate the avatar group around the Y axis based on mouse movement
+            avatarGroup.rotation.y += deltaX * 0.01; 
+            
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
+
+        // --- Avatar State Management ---
+
+        /**
+         * Updates the color of a specific body part in the 3D model.
+         */
+        function updateAvatarColor(partName, colorHex) {
+            // Logic for combining arms/legs into single color input
+            const partNames = [];
+            if (partName.includes('Arm')) {
+                partNames.push('LeftArm', 'RightArm');
+            } else if (partName.includes('Leg')) {
+                partNames.push('LeftLeg', 'RightLeg');
+            } else {
+                partNames.push(partName);
+            }
+
+            partNames.forEach(name => {
+                const part = avatarGroup.getObjectByName(name);
+                if (part) {
+                    part.material.color.set(colorHex);
+                    avatarState[name] = colorHex;
+                }
+            });
+        }
+
+        /**
+         * Toggles the visibility of an accessory on the avatar.
+         */
+        function toggleAccessory(accessoryName) {
+            const isEquipped = !avatarState.accessories[accessoryName];
+            
+            // Update internal state
+            avatarState.accessories[accessoryName] = isEquipped;
+
+            // Update 3D model visibility
+            const mesh = avatarGroup.getObjectByName(accessoryName);
+            if (mesh) {
+                mesh.visible = isEquipped;
+            }
+
+            // Re-render controls to update button text
+            renderAccessoryControls();
+            
+            // Since this changes the look, we should save the state
+            saveState();
+        }
+
+        /**
+         * Renders the list of owned accessories in the editor panel.
+         */
+        function renderAccessoryControls() {
+            const accessoryControls = document.getElementById('accessoryControls');
+            accessoryControls.innerHTML = '';
+            
+            // Filter inventory to only show items defined as accessories
+            const ownedAccessoryIds = Object.keys(inventory).filter(id => ACCESSORIES[id]);
+
+            if (ownedAccessoryIds.length === 0) {
+                accessoryControls.innerHTML = '<p class="text-gray-500">You don\'t own any accessories. Check the Catalog!</p>';
+                return;
+            }
+
+            ownedAccessoryIds.forEach(id => {
+                const accessory = ACCESSORIES[id];
+                const isEquipped = avatarState.accessories[id] === true;
+                
+                const buttonText = isEquipped ? 'Unequip' : 'Equip';
+                const buttonClass = isEquipped ? 'bg-red-500 hover:bg-red-600 text-white' : 'btn-primary';
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm';
+                itemDiv.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <!-- 3D Icon Mockup using Emojis -->
+                        <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-md border-2 border-gray-300 text-2xl shadow-inner">
+                            ${accessory.icon}
+                        </div>
+                        <span class="font-medium">${accessory.name}</span>
+                    </div>
+                    <button id="toggle${id}" class="roblox-button text-sm ${buttonClass}" onclick="toggleAccessory('${id}')">
+                        ${buttonText}
+                    </button>
+                `;
+                accessoryControls.appendChild(itemDiv);
+            });
+        }
+
+        /**
+         * Applies the currently saved avatarState to the 3D model and color pickers.
+         */
+        function updateAvatarFromState() {
+            if (!avatarGroup) return; 
+
+            // 1. Update Colors on 3D Model
+            for (const partName in avatarState) {
+                if (partName !== 'accessories' && avatarState[partName].startsWith('#')) {
+                    const colorHex = avatarState[partName];
+                    const part = avatarGroup.getObjectByName(partName);
+                    if (part) part.material.color.set(colorHex);
+                }
+            }
+
+            // 2. Update Color Pickers (Handle linked inputs)
+            if (document.getElementById('headColor')) document.getElementById('headColor').value = avatarState.Head;
+            if (document.getElementById('torsoColor')) document.getElementById('torsoColor').value = avatarState.Torso;
+            if (document.getElementById('armColor')) document.getElementById('armColor').value = avatarState.LeftArm; // Use LeftArm as the source
+            if (document.getElementById('legColor')) document.getElementById('legColor').value = avatarState.LeftLeg; // Use LeftLeg as the source
+
+            // 3. Update Accessories Visibility
+            for (const accessoryName in avatarState.accessories) {
+                const isEquipped = avatarState.accessories[accessoryName];
+                const mesh = avatarGroup.getObjectByName(accessoryName);
+                if (mesh) mesh.visible = isEquipped;
+            }
+            
+            // 4. Update Controls UI
+            renderAccessoryControls();
+        }
+
+        function saveAvatarState() {
+            saveState();
+            showMessage('Avatar Saved!', 'Your 3D avatar has been successfully saved to your profile!', false);
+        }
+
+        // --- Tab Management (Ensuring each is a "page") ---
+
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active-tab'));
+
+            // Show the requested tab
+            const newTab = document.getElementById(tabId);
+            const newButton = document.querySelector(`[data-tab="${tabId}"]`);
+            
+            if (newTab) newTab.classList.add('active');
+            if (newButton) newButton.classList.add('active-tab');
+
+            // Run specific load logic for certain tabs
+            if (tabId === 'profile') {
+                renderProfile();
+            }
+            if (tabId === 'avatar') {
+                // Initialize 3D editor if it hasn't been, or ensure it's responsive on view
+                if (!renderer) {
+                    initThreeDAvatarEditor();
+                } else {
+                    onWindowResize(); // Adjust canvas size in case of container change
+                    updateAvatarFromState(); // Refresh colors/accessories/controls
+                }
+            }
+        }
+
+        // --- Feature Rendering Functions ---
+
+        function loadRobuxBalance() {
+            document.getElementById('robuxBalance').textContent = robuxBalance.toLocaleString();
+        }
+        
+        function renderGames() {
+            const games = [
+                { name: "Phantom Forces", players: 12450 },
+                { name: "Jailbreak", players: 9870 },
+                { name: "Work at a Pizza Place", players: 5200 },
+                { name: "Adopt Me!", players: 3100 }
+            ];
+            const list = document.getElementById('gamesList');
+            list.innerHTML = games.map(game => `
+                <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+                    <div class="w-full aspect-video bg-blue-200 rounded-md mb-3 flex items-center justify-center text-blue-700 font-bold">Game Art Placeholder</div>
+                    <h4 class="font-bold text-lg">${game.name}</h4>
+                    <p class="text-sm text-gray-600">Playing: ${game.players.toLocaleString()}</p>
+                    <button class="roblox-button btn-primary w-full mt-2 text-sm">Play</button>
+                </div>
+            `).join('');
+        }
+
+        function renderCatalog() {
+            // Combine hardcoded and accessory items
+            const defaultItems = [
+                { id: 'shirt1', name: 'ROBLOX T-Shirt', price: 10, type: 'Shirt' },
+                { id: 'face1', name: 'Stitchface', price: 10000, type: 'Face' },
+                { id: 'gear1', name: 'Gravity Coil', price: 500, type: 'Gear' },
+            ];
+            
+            const accessoryItems = Object.entries(ACCESSORIES).map(([id, data]) => ({
+                id,
+                name: data.name,
+                price: data.price,
+                type: data.type,
+                icon: data.icon
+            }));
+
+            const allItems = [...accessoryItems, ...defaultItems];
+
+            const catalogList = document.getElementById('catalogList');
+            catalogList.innerHTML = allItems.map(item => {
+                const owned = inventory[item.id];
+                const buttonText = owned ? 'Owned' : `Buy (R$${item.price.toLocaleString()})`;
+                const buttonClass = owned ? 'bg-gray-500 cursor-not-allowed text-white' : 'btn-primary';
+                const action = owned ? 'void(0)' : `purchaseItem('${item.id}', '${item.name}', '${item.type}')`;
+                const visual = item.icon 
+                    ? `<div class="w-full aspect-square bg-yellow-100 rounded-md mb-2 flex items-center justify-center text-2xl font-semibold">${item.icon}</div>`
+                    : `<div class="w-full aspect-square bg-yellow-100 rounded-md mb-2 flex items-center justify-center text-yellow-700 text-sm font-semibold">${item.name}</div>`;
+
+                return `
+                    <div class="catalog-item bg-white p-3 rounded-lg shadow-sm text-center border border-gray-200">
+                        ${visual}
+                        <p class="text-sm font-semibold">${item.name}</p>
+                        <p class="text-xs text-gray-500 mb-2">${item.type}</p>
+                        <button class="roblox-button ${buttonClass} w-full text-xs" onclick="${action}">${buttonText}</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function purchaseItem(id, name, type) {
+            const price = ACCESSORIES[id] ? ACCESSORIES[id].price : 0; // Only check accessories for now
+            if (!currentUser) {
+                showMessage('Login Required', 'You must be logged in to purchase items.', false);
+                return;
+            }
+            if (robuxBalance >= price) {
+                showMessage(
+                    'Confirm Purchase', 
+                    `Are you sure you want to purchase "${name}" for R$${price.toLocaleString()}?`, 
+                    true, 
+                    () => {
+                        robuxBalance -= price;
+                        inventory[id] = { name: name, type: type };
+                        saveState();
+                        loadRobuxBalance();
+                        renderCatalog();
+                        // Re-render controls in case the avatar tab is active
+                        if (document.getElementById('avatar').classList.contains('active')) {
+                            renderAccessoryControls(); 
+                        }
+                        showMessage('Success!', `${name} has been added to your inventory.`, false);
+                    }
+                );
+            } else {
+                showMessage('Not Enough Robux', `You need R$${(price - robuxBalance).toLocaleString()} more to buy this item.`, false);
+            }
+        }
+
+        function renderProfile() {
+            document.getElementById('profileUsername').textContent = currentUser ? currentUser.username : 'Guest (Log in to save)';
+            document.getElementById('profileJoinDate').textContent = currentUser ? currentUser.joinDate : 'N/A';
+
+            // Render Inventory
+            const inventoryList = document.getElementById('profileInventory');
+            inventoryList.innerHTML = Object.keys(inventory).map(id => {
+                const item = inventory[id];
+                return `
+                    <div class="bg-gray-100 p-2 text-center rounded-md border border-gray-200 text-sm">
+                        ${item.name}
+                    </div>
+                `;
+            }).join('') || '<p class="col-span-3 text-center text-gray-500">Your inventory is empty.</p>';
+
+            // Placeholder for the profile avatar preview
+            const previewContainer = document.getElementById('profileAvatarPreview');
+            previewContainer.innerHTML = `
+                <img src="https://placehold.co/150x150/007bff/ffffff?text=${currentUser ? currentUser.username : 'Guest'}" 
+                     class="rounded-lg border-2 border-gray-300"
+                     alt="Avatar Preview">
+            `;
+        }
+
+        function renderFriends() {
+            const list = document.getElementById('friendsList');
+            list.innerHTML = friendsList.map(name => `
+                <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div> <!-- Online indicator -->
+                        <span class="font-medium">${name}</span>
+                    </div>
+                    <button class="roblox-button bg-red-500 text-white text-xs hover:bg-red-600">Unfriend</button>
+                </div>
+            `).join('') || '<p class="text-center text-gray-500">You have no friends.</p>';
+        }
+
+        function renderChatMessages() {
+            const chatBox = document.getElementById('chatMessages');
+            chatBox.innerHTML = chatMessages.map(msg => {
+                const isSystem = msg.username === 'System';
+                const nameClass = isSystem ? 'text-blue-500' : 'text-gray-900 font-semibold';
+                const textClass = isSystem ? 'text-blue-700' : 'text-gray-800';
+                return `
+                    <div class="text-sm mb-1">
+                        <span class="${nameClass}">${msg.username}:</span> 
+                        <span class="${textClass}">${msg.text}</span>
+                    </div>
+                `;
+            }).join('');
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // --- Event Listeners and Initial Load ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Load Data
+            loadState();
+            
+            // 2. Initialize UI Components
+            updateAuthUI();
+            loadRobuxBalance();
+            renderGames();
+            renderCatalog();
+            renderFriends();
+            renderChatMessages();
+
+            // 3. Tab Switching
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchTab(e.target.dataset.tab);
+                });
+            });
+
+            // 4. Chat Submission
+            const chatMessageInput = document.getElementById('chatMessageInput');
+            const sendChatButton = document.getElementById('sendChatButton');
+
+            const handleChatSend = () => {
+                if (!currentUser) {
+                    showMessage('Login Required', 'Please log in to chat!', false);
+                    return;
+                }
+
+                const messageText = chatMessageInput.value.trim();
+                if (messageText) {
+                    const newMessage = {
+                        username: currentUser.username,
+                        text: messageText,
+                        timestamp: new Date().toISOString()
+                    };
+                    chatMessages.push(newMessage);
+                    saveState();
+                    renderChatMessages();
+                    chatMessageInput.value = ''; // Clear input
+                }
+            };
+
+            sendChatButton.addEventListener('click', handleChatSend);
+            chatMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleChatSend();
+                }
+            });
+
+            // 5. Set initial active tab (Avatar by default)
+            switchTab('avatar');
+        });
+    </script>
+</body>
+</html>
